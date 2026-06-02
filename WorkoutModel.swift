@@ -6,27 +6,66 @@
 //
 
 import Foundation
-struct WorkoutSplit: Identifiable {
-    var id = UUID()
+import SwiftData
+
+// MARK: - Workout Split (Top Level)
+
+@Model
+class WorkoutSplit {
     var name: String
+    var date: Date
+
+    @Relationship(deleteRule: .cascade)
     var days: [WorkoutDay] = []
+
+    init(name: String, date: Date = Date()) {
+        self.name = name
+        self.date = date
+    }
 }
 
-struct WorkoutDay: Identifiable {
-    var id = UUID()
+
+// MARK: - Workout Day
+
+@Model
+class WorkoutDay {
     var name: String
-    var date: Date = Date()
+    var date: Date
+
+    @Relationship(deleteRule: .cascade)
     var exercises: [Exercise] = []
-}
-struct Exercise: Identifiable {
-    var id = UUID()
-    var name: String
-    var sets: [WorkoutSet] = []
+
+    init(name: String, date: Date = Date()) {
+        self.name = name
+        self.date = date
+    }
 }
 
-struct WorkoutSet: Identifiable {
-    var id = UUID()
+
+// MARK: - Exercise
+
+@Model
+class Exercise {
+    var name: String
+
+    @Relationship(deleteRule: .cascade)
+    var sets: [WorkoutSet] = []
+
+    init(name: String) {
+        self.name = name
+    }
+}
+
+
+// MARK: - Workout Set
+
+@Model
+class WorkoutSet {
     var reps: Int
     var weight: Double?
-}
 
+    init(reps: Int, weight: Double? = nil) {
+        self.reps = reps
+        self.weight = weight
+    }
+}

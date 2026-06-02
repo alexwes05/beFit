@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct BeFitApp: App {
@@ -13,5 +14,6 @@ struct BeFitApp: App {
         WindowGroup {
             ContentView()
         }
+        .modelContainer(for: WorkoutSplit.self)
     }
 }

@@ -14,8 +14,9 @@ struct ViewWorkouts: View {
                 Color(red: 240/255, green: 240/255, blue: 255/255)
                     .ignoresSafeArea(edges: .all)
                 Image("AppBackground")
-                    .renderingMode(.template)
-                    .foregroundStyle(.blue)
+                    .resizable()
+                    .scaledToFill()
+                    .ignoresSafeArea()
                     .opacity(0.1)
             }
             .navigationBarTitleDisplayMode(.inline)

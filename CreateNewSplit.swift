@@ -11,6 +11,8 @@ import SwiftData
 struct CreateNewSplit: View {
 
     @Environment(\.modelContext) private var context
+    @Environment(\.dismiss) private var dismiss
+    
     @State private var name: String = ""
 
     @State private var showAlert = false   // 👈 add this
@@ -57,6 +59,6 @@ struct CreateNewSplit: View {
         context.insert(newSplit)
 
         self.name = ""
-        self.showAlert = true   // 👈 trigger alert
+        dismiss()
     }
 }

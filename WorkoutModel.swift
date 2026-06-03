@@ -8,27 +8,10 @@
 import Foundation
 import SwiftData
 
-// MARK: - Workout Split (Top Level)
+// MARK: - Workout Split
 
 @Model
 class WorkoutSplit {
-    var name: String
-    var date: Date
-
-    @Relationship(deleteRule: .cascade)
-    var days: [WorkoutDay] = []
-
-    init(name: String, date: Date = Date()) {
-        self.name = name
-        self.date = date
-    }
-}
-
-
-// MARK: - Workout Day
-
-@Model
-class WorkoutDay {
     var name: String
     var date: Date
 

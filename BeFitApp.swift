@@ -14,6 +14,10 @@ struct BeFitApp: App {
         WindowGroup {
             ContentView()
         }
-        .modelContainer(for: WorkoutSplit.self)
+        .modelContainer(for: [
+            WorkoutSplit.self,
+            Exercise.self,
+            WorkoutSet.self
+        ])
     }
 }

@@ -47,6 +47,8 @@ class WorkoutSet {
     var reps: Int
     var weight: Double?
 
+    var isCompleted: Bool = false
+
     init(reps: Int, weight: Double? = nil) {
         self.reps = reps
         self.weight = weight

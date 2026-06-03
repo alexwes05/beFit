@@ -10,7 +10,9 @@ import SwiftData
 
 struct ViewWorkouts: View {
 
-    @Query var splits: [WorkoutSplit]
+    @Query(sort: \WorkoutSplit.date, order: .reverse)
+    var splits: [WorkoutSplit]
+    
     @Environment(\.modelContext) private var context
     @State private var showDeleteAlert = false
     @State private var splitToDelete: WorkoutSplit?
@@ -67,21 +69,19 @@ struct ViewWorkouts: View {
                                 }
 
                                 context.insert(newSplit)
-                            }.buttonStyle(.plain)
+                            }.buttonStyle(.glass)
                                 .foregroundStyle(Color.blue)
                             
                             NavigationLink {
                                 WorkoutEditorView(split: split)
                             } label: {
                                 Text("Edit")
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(Color.blue.opacity(0.2))
-                                    .foregroundStyle(.blue)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                            }
-                            .buttonStyle(.plain)
-                            Spacer()
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(Color.blue)
+                                    .foregroundStyle(.white)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                            }.buttonStyle(.glassProminent)
                             
                         } .swipeActions {
                             Button(role: .destructive) {

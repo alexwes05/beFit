@@ -11,67 +11,100 @@ import SwiftData
 struct WorkoutEditorView: View {
     
     @Bindable var split: WorkoutSplit
+    @Environment(\.modelContext) private var context
     
     var body: some View {
-        ZStack {
-            Color(red: 240/255, green: 240/255, blue: 255/255)
-                .ignoresSafeArea()
-            
-            Image("AppBackground")
-                .resizable()
-                .scaledToFill()
-                .ignoresSafeArea()
-                .opacity(0.1)
-            
-            VStack{
-                HStack{
-                    Spacer()
-                    Text(split.name)
-                        .font(Font.custom("Pixelify Sans", size: 40)).bold()
-                        .padding(.top, 40)
-                    Spacer()
+        NavigationStack {
+            ZStack {
+                Color(red: 240/255, green: 240/255, blue: 255/255)
+                    .ignoresSafeArea()
+                
+                Image("AppBackground")
+                    .resizable()
+                    .scaledToFill()
+                    .ignoresSafeArea()
+                    .opacity(0.1)
+                
+                VStack{
                     DatePicker(
                         "Date",
                         selection: $split.date,
                         displayedComponents: .date
                     ).labelsHidden()
                         .padding(.horizontal)
-                        .padding(.top, 40)
-                    Spacer()
-                }
-                List {
-                    ForEach(split.exercises) { exercise in
-
-                        Section {
-
-                            ForEach(exercise.sets) { set in
-                                SetRow(set: set)
-                            }
-                            .onDelete { indexSet in
-                                for index in indexSet {
-                                    //let set = exercise.sets[index]
-                                    exercise.sets.remove(at: index)
-                                }
-                            }
-
-                            AddSetRow(exercise: exercise)
-
-                        } header: {
-
-                            Text(exercise.name)
-                                .font(Font.custom("Pixelify Sans", size: 20))
-                                .bold()
-                        }
-                    }
-
-                    AddExerciseRow(split: split)
+                        .padding(.top, 60)
                     
+                    List {
+                        ForEach(split.exercises) { exercise in
+                            
+                            Section {
+                                
+                                ForEach(exercise.sets) { set in
+                                    SetRow(set: set)
+                                }
+                                .onDelete { indexSet in
+                                    for index in indexSet {
+                                        //let set = exercise.sets[index]
+                                        exercise.sets.remove(at: index)
+                                    }
+                                }
+                                
+                                AddSetRow(exercise: exercise)
+                                
+                            } header: {
+                                
+                                Text(exercise.name)
+                                    .font(Font.custom("Pixelify Sans", size: 20))
+                                    .bold()
+                            }
+                        }
+                        
+                        AddExerciseRow(split: split)
+                        
+                    }
+                    .listStyle(.sidebar)
+                    .scrollContentBackground(.hidden)
+                    .background(Color.clear)
                 }
-                .listStyle(.sidebar)
-                .scrollContentBackground(.hidden)
-                .background(Color.clear)
             }
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                       Text(split.name)
+                           .font(Font.custom("Pixelify Sans", size: 40))
+                           .bold()
+                   }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        duplicateSplit()
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                    }
+                }
+            }
+        } .navigationBarTitleDisplayMode(.inline)
+    }
+    func duplicateSplit() {
+        let newSplit = WorkoutSplit(
+            name: split.name,
+            date: Date()
+        )
+
+        for exercise in split.exercises {
+            let newExercise = Exercise(name: exercise.name)
+
+            for set in exercise.sets {
+                let newSet = WorkoutSet(
+                    reps: set.reps,
+                    weight: set.weight
+                )
+
+                newExercise.sets.append(newSet)
+            }
+
+            newSplit.exercises.append(newExercise)
         }
+        context.insert(newSplit)
     }
 }
 

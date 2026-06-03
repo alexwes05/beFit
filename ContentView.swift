@@ -6,17 +6,22 @@
 //
 
 import SwiftUI
-
+import SwiftData
 
 struct ContentView: View {
+    
+    
+    @Environment(\.modelContext) private var context
+    
     var body: some View {
         NavigationStack {
             ZStack {
                 Color(red: 240/255, green: 240/255, blue: 255/255)
                     .ignoresSafeArea(edges: .all)
                 Image("AppBackground")
-                    .renderingMode(.template)
-                    .foregroundStyle(.blue)
+                    .resizable()
+                    .scaledToFill()
+                    .ignoresSafeArea()
                     .opacity(0.1)
             VStack(spacing:20) {
                        Text("BeFit")

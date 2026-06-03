@@ -22,6 +22,9 @@ class WorkoutSplit {
         self.name = name
         self.date = date
     }
+    var volume: Double {
+        exercises.reduce(0) { $0 + $1.volume }
+    }
 }
 
 
@@ -36,6 +39,9 @@ class Exercise {
 
     init(name: String) {
         self.name = name
+    }
+    var volume: Double {
+        sets.reduce(0) { $0 + $1.volume }
     }
 }
 
@@ -53,4 +59,9 @@ class WorkoutSet {
         self.reps = reps
         self.weight = weight
     }
+    
+    var volume: Double {
+            guard let weight else { return 0 }
+            return Double(reps) * weight
+        }
 }

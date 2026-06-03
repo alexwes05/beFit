@@ -10,7 +10,12 @@ import SwiftData
 
 struct ViewWorkouts: View {
 
-    @Query var splits: [WorkoutSplit]
+    @Query(sort: \WorkoutSplit.date, order: .reverse)
+    var splits: [WorkoutSplit]
+    
+    @Environment(\.modelContext) private var context
+    @State private var showDeleteAlert = false
+    @State private var splitToDelete: WorkoutSplit?
 
     var body: some View {
         NavigationStack {
@@ -35,11 +40,60 @@ struct ViewWorkouts: View {
                                     .font(.caption)
                                     .foregroundStyle(.gray)
                             }
-                            Spacer()
-                            Button("Edit"){}
-                            Button("Use"){}
+                            
+                            //DUPLICATE LOGIC
+                            Button("Duplicate") {
+
+                                let newSplit = WorkoutSplit(
+                                    name: split.name,
+                                    date: Date()
+                                )
+
+                                for exercise in split.exercises {
+
+                                    let newExercise = Exercise(
+                                        name: exercise.name
+                                    )
+
+                                    for set in exercise.sets {
+
+                                        let newSet = WorkoutSet(
+                                            reps: set.reps,
+                                            weight: set.weight
+                                        )
+
+                                        newExercise.sets.append(newSet)
+                                    }
+
+                                    newSplit.exercises.append(newExercise)
+                                }
+
+                                context.insert(newSplit)
+                            }.buttonStyle(.glass)
+                                .foregroundStyle(Color.blue)
+                            
+                            NavigationLink {
+                                WorkoutEditorView(split: split)
+                            } label: {
+                                Text("Edit")
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 8)
+                                    .background(Color.blue)
+                                    .foregroundStyle(.white)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                            }.buttonStyle(.glassProminent)
+                            
+                        } .swipeActions {
+                            Button(role: .destructive) {
+                                splitToDelete = split
+                                showDeleteAlert = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
                         }
+
                     }
+                    
                 }
                 .scrollContentBackground(.hidden)
                 .padding(.top, 40)
@@ -53,6 +107,24 @@ struct ViewWorkouts: View {
                         .bold()
                 }
             }
+            .alert("Delete Workout?", isPresented: $showDeleteAlert) {
+                Button("Cancel", role: .cancel) { }
+
+                Button("Delete", role: .destructive) {
+                    if let split = splitToDelete {
+                        context.delete(split)
+                    }
+                }
+            } message: {
+                Text("This cannot be undone.")
+            }
+        }
+    }
+    
+    func deleteSplit(at offsets: IndexSet) {
+        for index in offsets {
+            let split = splits[index]
+            context.delete(split)
         }
     }
 }

@@ -13,71 +13,70 @@ struct TestAnalyticsView: View {
 
     var body: some View {
         VStack {
+            //TESTS IF CAN FIND BENCH PRESSES AND DOES IT BY ORDER OF DATE
             Button("Test Bench Press") {
-
-                let grouped = getAllSetsGroupedByDate(
-                    for: "Bench Press",
-                    from: splits
-                )
-
+                print("--------------")
+                let grouped = getAllSetsGroupedByDate(for: "Bench Press", from: splits)
                 let sortedDates = grouped.keys.sorted(by: >)
-
-                var totalAcrossAllDays = 0.0
-
+                
                 for date in sortedDates {
-
-                    print("\n📅 DATE:", date)
-
+                    print("DATE: \(date.formatted())")
+                    
                     var dayVolume = 0.0
-
+                    
                     if let sets = grouped[date] {
-
                         for set in sets {
-                            print("   Reps:", set.reps,
-                                  "Weight:", set.weight ?? 0,
-                                  "Set Volume:", set.volume)
-
-                            dayVolume += set.volume
+                            print("Reps:", set.reps, "Weight:", set.weight ?? 0, "Set Volume:", set.volume)
+                            dayVolume+=set.volume
                         }
-
-                        print("🏋️ Day Volume:", dayVolume)
                     }
-
-                    totalAcrossAllDays += dayVolume
+                    print("Day Volume:", dayVolume)
                 }
-
-                print("\n📊 TOTAL BENCH PRESS VOLUME:", totalAcrossAllDays)
+                
             }
+            
+            //Tests if computed volume vars work
             Button("Test Full Volume Breakdown") {
-
-                var totalAllSplits = 0.0
-
+                print("--------------")
                 for split in splits {
-
-                    print("\n==============================")
-                    print("SPLIT:", split.name)
-                    print("==============================")
-
-                    var splitTotal = 0.0
-
+                    print("Split: \(split.name), Volume: \(split.volume)")
+                    
                     for exercise in split.exercises {
-
-                        let exerciseVolume = exercise.sets.reduce(0) { $0 + $1.volume }
-
-                        print("\n     Exercise:", exercise.name)
-                        print("     Volume:", exerciseVolume)
-
-                        splitTotal += exerciseVolume
+                        print("Exercise: ", exercise.name, "Volume: \(exercise.volume)")
                     }
-
-                    print("\nSPLIT TOTAL VOLUME:", splitTotal)
-
-                    totalAllSplits += splitTotal
                 }
-
-                print("\n==============================")
-                print("TOTAL ALL SPLITS VOLUME:", totalAllSplits)
-                print("==============================")
+            }
+            
+        
+        //Tests to see if it will accurately get the last workout of a specific name
+        Button("Test Last Workout (Bench Press)") {
+            print("--------------")
+            if let lastSets = getLastWorkout(for:"Bench Press", from: splits){
+                print("Last Bench Press Workouts:")
+                for set in lastSets {
+                    print("Reps:", set.reps,
+                          "Weight:", set.weight ?? 0,
+                          "Set Volume:", set.volume)
+                }
+            }
+        }
+            
+            //FIND PRs
+            Button("Find the PR of Bench Press") {
+                print("--------------")
+                var pr = getTrainingVolumePR(for: "Bench Press", from: splits)
+                print("The Volume PR for Bench Press is: \(pr?.volume.formatted() ?? "N/A")")
+                print("With reps: \(pr?.reps ?? 0) and weight: \(pr?.weight ?? 0)")
+                
+                pr = getWeightPR(for: "Bench Press", from: splits)
+                let weight = pr?.weight ?? 0
+                print("The Weight PR for Bench Press is: \(weight)")
+                print("With reps: \(pr?.reps ?? 0) and weight: \(pr?.weight ?? 0)")
+                
+                
+                pr = getRepsPR(for: "Bench Press", from: splits)
+                print("The Rep PR for Bench Press is: \(pr?.reps.formatted() ?? "N/A")")
+                print("With reps: \(pr?.reps ?? 0) and weight: \(pr?.weight ?? 0)")
             }
         }
     }

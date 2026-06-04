@@ -24,6 +24,19 @@ func getAllSetsGroupedByDate( for exerciseName: String, from splits: [WorkoutSpl
     return results
 }
 
+func getAllSets(for exerciseName: String, from splits: [WorkoutSplit]) -> [WorkoutSet] {
+    var results: [WorkoutSet] = []
+
+    for split in splits {
+        for exercise in split.exercises {
+            if exercise.name == exerciseName {
+                results.append(contentsOf: exercise.sets)
+            }
+        }
+    }
+
+    return results
+}
 
 func getLastWorkout(
     for exerciseName: String,
@@ -37,4 +50,26 @@ func getLastWorkout(
     }
 
     return lastGroup.1
+}
+
+//Three seperate PRs
+func getTrainingVolumePR( for exerciseName: String, from splits: [WorkoutSplit]) -> WorkoutSet? {
+    let sets = getAllSets(for: exerciseName, from: splits)
+    return sets.max { a, b in
+            a.volume < b.volume
+        }
+}
+
+func getWeightPR( for exerciseName: String, from splits: [WorkoutSplit]) -> WorkoutSet? {
+    let sets = getAllSets(for: exerciseName, from: splits)
+    return sets.max { a, b in
+            a.weight ?? 0 < b.weight ?? 0
+        }
+}
+
+func getRepsPR( for exerciseName: String, from splits: [WorkoutSplit]) -> WorkoutSet? {
+    let sets = getAllSets(for: exerciseName, from: splits)
+    return sets.max { a, b in
+            a.reps < b.reps
+        }
 }

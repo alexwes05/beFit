@@ -73,3 +73,95 @@ func getRepsPR( for exerciseName: String, from splits: [WorkoutSplit]) -> Workou
             a.reps < b.reps
         }
 }
+
+struct SetProgression: Identifiable {
+    let id = UUID()
+
+    let index: Int
+
+    let currentReps: Int
+    let currentWeight: Double
+
+    let previousReps: Int
+    let previousWeight: Double
+
+    let change: Double
+    let percent: Double
+
+    let isNewSet: Bool
+}
+
+
+func compareProgression(
+    exerciseName: String,
+    currentSplit: WorkoutSplit,
+    allSplits: [WorkoutSplit]
+) -> [SetProgression] {
+
+    let pastSplits = allSplits.filter { $0 !== currentSplit }
+
+    guard var lastSets = getLastWorkout(
+        for: exerciseName,
+        from: pastSplits
+    ) else {
+        return []
+    }
+
+    guard let currentExercise = currentSplit.exercises.first(where: {
+        $0.name == exerciseName
+    }) else {
+        return []
+    }
+
+    let currentSets = currentExercise.sets.sorted { $0.order < $1.order }
+    lastSets = lastSets.sorted { $0.order < $1.order }
+
+    let count = min(currentSets.count, lastSets.count)
+
+    var results: [SetProgression] = []
+
+    // matched sets
+    for i in 0..<count {
+
+        let current = currentSets[i]
+        let previous = lastSets[i]
+
+        let change = current.volume - previous.volume
+        let percent = (change / max(previous.volume, 1)) * 100
+
+        results.append(
+            SetProgression(
+                index: i,
+                currentReps: current.reps,
+                currentWeight: current.weight ?? 0,
+                previousReps: previous.reps,
+                previousWeight: previous.weight ?? 0,
+                change: change,
+                percent: percent,
+                isNewSet: false
+            )
+        )
+    }
+
+    // extra current sets
+    if currentSets.count > lastSets.count {
+        for i in count..<currentSets.count {
+            let set = currentSets[i]
+
+            results.append(
+                SetProgression(
+                    index: i,
+                    currentReps: set.reps,
+                    currentWeight: set.weight ?? 0,
+                    previousReps: 0,
+                    previousWeight: 0,
+                    change: set.volume,
+                    percent: 100,
+                    isNewSet: true
+                )
+            )
+        }
+    }
+
+    return results
+}

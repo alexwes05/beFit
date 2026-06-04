@@ -78,6 +78,38 @@ struct TestAnalyticsView: View {
                 print("The Rep PR for Bench Press is: \(pr?.reps.formatted() ?? "N/A")")
                 print("With reps: \(pr?.reps ?? 0) and weight: \(pr?.weight ?? 0)")
             }
+            
+            Button("Test Set Progression (Bench Press)") {
+                print("--------------")
+
+                let sortedSplits = splits.sorted { $0.date > $1.date }
+
+                guard let currentSplit = sortedSplits.first else {
+                    print("No splits found")
+                    return
+                }
+
+                let progression = compareProgression(
+                    exerciseName: "Bench Press",
+                    currentSplit: currentSplit,
+                    allSplits: sortedSplits
+                )
+
+                print("\n📊 SET PROGRESSION RESULT")
+                print("------------------------")
+
+                for item in progression {
+
+                    print("""
+                    Set \(item.index + 1):
+                        Current: \(item.currentWeight)x\(item.currentReps)
+                        Previous: \(item.previousWeight)x\(item.previousReps)
+                        Change: \(item.change >= 0 ? "+" : "")\(item.change)
+                        Percent: \(String(format: "%.1f", item.percent))%
+                        New Set: \(item.isNewSet)
+                    """)
+                }
+            }
         }
     }
 }
@@ -98,8 +130,9 @@ struct TestAnalyticsView: View {
     let push = WorkoutSplit(name: "Push Day", date: now)
 
     let bench = Exercise(name: "Bench Press")
-    bench.sets.append(WorkoutSet(reps: 10, weight: 135))
-    bench.sets.append(WorkoutSet(reps: 8, weight: 155))
+    bench.sets.append(WorkoutSet(reps: 10, weight: 135, order: 0))
+    bench.sets.append(WorkoutSet(reps: 8, weight: 155, order: 1))
+    bench.sets.append(WorkoutSet(reps: 8, weight: 155, order: 2))
 
     push.exercises.append(bench)
     context.insert(push)
@@ -110,14 +143,14 @@ struct TestAnalyticsView: View {
     let pull = WorkoutSplit(name: "Pull Day", date: pullDate)
 
     let row = Exercise(name: "Barbell Row")
-    row.sets.append(WorkoutSet(reps: 10, weight: 95))
+    row.sets.append(WorkoutSet(reps: 10, weight: 95, order: 0))
 
     pull.exercises.append(row)
-    
+
     let bench2 = Exercise(name: "Bench Press")
-    bench2.sets.append(WorkoutSet(reps: 10, weight: 145))
-    bench2.sets.append(WorkoutSet(reps: 8, weight: 155))
-    
+    bench2.sets.append(WorkoutSet(reps: 10, weight: 145, order: 0))
+    bench2.sets.append(WorkoutSet(reps: 8, weight: 155, order: 1))
+
     pull.exercises.append(bench2)
 
     context.insert(pull)
@@ -128,8 +161,8 @@ struct TestAnalyticsView: View {
     let legs = WorkoutSplit(name: "Leg Day", date: legsDate)
 
     let squat = Exercise(name: "Squat")
-    squat.sets.append(WorkoutSet(reps: 8, weight: 185))
-    squat.sets.append(WorkoutSet(reps: 6, weight: 225))
+    squat.sets.append(WorkoutSet(reps: 8, weight: 185, order: 0))
+    squat.sets.append(WorkoutSet(reps: 6, weight: 225, order: 1))
 
     legs.exercises.append(squat)
     context.insert(legs)

@@ -55,13 +55,16 @@ class WorkoutSet {
 
     var isCompleted: Bool = false
 
-    init(reps: Int, weight: Double? = nil) {
+    var order: Int
+
+    init(reps: Int, weight: Double? = nil, order: Int = 0) {
         self.reps = reps
         self.weight = weight
+        self.order = order
     }
-    
+
     var volume: Double {
-            guard let weight else { return 0 }
-            return Double(reps) * weight
-        }
+        guard let weight else { return 0 }
+        return Double(reps) * weight
+    }
 }

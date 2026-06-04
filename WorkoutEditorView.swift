@@ -13,6 +13,8 @@ struct WorkoutEditorView: View {
     @Bindable var split: WorkoutSplit
     @Environment(\.modelContext) private var context
     
+    @State private var exerciseToDelete: Exercise?
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -39,7 +41,7 @@ struct WorkoutEditorView: View {
                             
                             Section {
                                 
-                                ForEach(exercise.sets) { set in
+                                ForEach(exercise.sets.sorted { $0.order < $1.order }) { set in
                                     SetRow(set: set)
                                 }
                                 .onDelete { indexSet in
@@ -52,10 +54,22 @@ struct WorkoutEditorView: View {
                                 AddSetRow(exercise: exercise)
                                 
                             } header: {
-                                
-                                Text(exercise.name)
-                                    .font(Font.custom("Pixelify Sans", size: 20))
-                                    .bold()
+                                HStack {
+                                    Text(exercise.name)
+                                        .font(Font.custom("Pixelify Sans", size: 20))
+                                        .bold()
+
+                                    Spacer()
+
+                                    Button {
+                                        exerciseToDelete = exercise
+                                    } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundStyle(.black)
+                                    }
+                                    .padding(.trailing, -8)
+                                    .buttonStyle(.plain)
+                                }
                             }
                         }
                         
@@ -83,6 +97,37 @@ struct WorkoutEditorView: View {
                 }
             }
         } .navigationBarTitleDisplayMode(.inline)
+            .alert(
+                "Delete Exercise?",
+                isPresented: Binding(
+                    get: { exerciseToDelete != nil },
+                    set: { if !$0 { exerciseToDelete = nil } }
+                )
+            ) {
+                Button("Delete", role: .destructive) {
+
+                    if let exercise = exerciseToDelete {
+
+                        split.exercises.removeAll {
+                            $0.id == exercise.id
+                        }
+
+                        context.delete(exercise)
+
+                        exerciseToDelete = nil
+                    }
+                }
+
+                Button("Cancel", role: .cancel) {
+                    exerciseToDelete = nil
+                }
+
+            } message: {
+
+                if let exercise = exerciseToDelete {
+                    Text("Delete \(exercise.name)? This will remove all sets.")
+                }
+            }
     }
     func duplicateSplit() {
         let newSplit = WorkoutSplit(
@@ -159,31 +204,35 @@ struct AddSetRow: View {
     var body: some View {
         HStack {
 
-            // REPS INPUT
             TextField("Reps", text: $repsText)
                 .keyboardType(.numberPad)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 70)
+
             Text("x")
-            // WEIGHT INPUT
+
             TextField("Weight", text: $weightText)
                 .keyboardType(.decimalPad)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 90)
+
             Spacer()
+
             Button("Add") {
 
                 let reps = Int(repsText) ?? 0
-                let weight = Double(weightText)
+                let weight = Double(weightText) ?? 0
+
+                let nextOrder = exercise.sets.count
 
                 let set = WorkoutSet(
                     reps: reps,
-                    weight: weight
+                    weight: weight,
+                    order: nextOrder
                 )
 
                 exercise.sets.append(set)
 
-                // reset fields
                 repsText = ""
                 weightText = ""
             }

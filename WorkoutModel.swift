@@ -55,7 +55,7 @@ class WorkoutSet {
 
     var isCompleted: Bool = false
 
-    var order: Int
+    var order: Int = 0
 
     init(reps: Int, weight: Double? = nil, order: Int = 0) {
         self.reps = reps

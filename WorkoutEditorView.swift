@@ -15,6 +15,9 @@ struct WorkoutEditorView: View {
     
     @State private var exerciseToDelete: Exercise?
     
+    @Query(sort: \WorkoutSplit.date, order: .reverse)
+    var allSplits: [WorkoutSplit]
+
     var body: some View {
         NavigationStack {
             ZStack {
@@ -38,21 +41,39 @@ struct WorkoutEditorView: View {
                     
                     List {
                         ForEach(split.exercises) { exercise in
-                            
+                            //per-set progression data
+                            let progression = compareProgression(
+                                exerciseName: exercise.name,
+                                currentSplit: split,
+                                allSplits: allSplits
+                            )
+
+                            let sets = exercise.sets
+                                .sorted { $0.order < $1.order }
+
                             Section {
-                                
-                                ForEach(exercise.sets.sorted { $0.order < $1.order }) { set in
-                                    SetRow(set: set)
+                                ForEach(Array(sets.enumerated()), id: \.element.id) { index, set in
+                                    //assigns a progression value for the current set index if it exists
+                                    let prog = index < progression.count ? progression[index] : nil
+                                    SetRow(set: set, progression: prog)
                                 }
+                                //DELETE
                                 .onDelete { indexSet in
+                                    let sorted = exercise.sets.sorted { $0.order < $1.order }
+
                                     for index in indexSet {
-                                        //let set = exercise.sets[index]
-                                        exercise.sets.remove(at: index)
+                                        let setToDelete = sorted[index]
+                                        exercise.sets.removeAll { $0.id == setToDelete.id }
+                                    }
+
+                                    // re-normalize order
+                                    for (i, set) in exercise.sets.sorted(by: { $0.order < $1.order }).enumerated() {
+                                        set.order = i
                                     }
                                 }
                                 
                                 AddSetRow(exercise: exercise)
-                                
+
                             } header: {
                                 HStack {
                                     Text(exercise.name)
@@ -60,7 +81,21 @@ struct WorkoutEditorView: View {
                                         .bold()
 
                                     Spacer()
+                                    Text("Volume: \(exercise.volume.formatted())").font(Font.custom("", size: 14))
+                                    // Exercise Progression
+                                    if let progression = compareExerciseProgression(
+                                        exerciseName: exercise.name,
+                                        currentSplit: split,
+                                        allSplits: allSplits
+                                    ) {
 
+                                        Text(
+                                            progression.change >= 0
+                                            ? "↑+\(Int(progression.change)) (\(Int(progression.percent))%)"
+                                            : "↓\(Int(abs(progression.change))) (\(Int(progression.percent))%)"
+                                        ).font(Font.custom("", size: 14))
+                                            .foregroundStyle(progression.change >= 0 ? .green : .red)
+                                    }
                                     Button {
                                         exerciseToDelete = exercise
                                     } label: {
@@ -83,10 +118,10 @@ struct WorkoutEditorView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                       Text(split.name)
-                           .font(Font.custom("Pixelify Sans", size: 40))
-                           .bold()
-                   }
+                    Text(split.name)
+                        .font(Font.custom("Pixelify Sans", size: 40))
+                        .bold()
+                }
 
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -96,39 +131,34 @@ struct WorkoutEditorView: View {
                     }
                 }
             }
-        } .navigationBarTitleDisplayMode(.inline)
-            .alert(
-                "Delete Exercise?",
-                isPresented: Binding(
-                    get: { exerciseToDelete != nil },
-                    set: { if !$0 { exerciseToDelete = nil } }
-                )
-            ) {
-                Button("Delete", role: .destructive) {
-
-                    if let exercise = exerciseToDelete {
-
-                        split.exercises.removeAll {
-                            $0.id == exercise.id
-                        }
-
-                        context.delete(exercise)
-
-                        exerciseToDelete = nil
-                    }
-                }
-
-                Button("Cancel", role: .cancel) {
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .alert(
+            "Delete Exercise?",
+            isPresented: Binding(
+                get: { exerciseToDelete != nil },
+                set: { if !$0 { exerciseToDelete = nil } }
+            )
+        ) {
+            Button("Delete", role: .destructive) {
+                if let exercise = exerciseToDelete {
+                    split.exercises.removeAll { $0.id == exercise.id }
+                    context.delete(exercise)
                     exerciseToDelete = nil
                 }
-
-            } message: {
-
-                if let exercise = exerciseToDelete {
-                    Text("Delete \(exercise.name)? This will remove all sets.")
-                }
             }
+
+            Button("Cancel", role: .cancel) {
+                exerciseToDelete = nil
+            }
+
+        } message: {
+            if let exercise = exerciseToDelete {
+                Text("Delete \(exercise.name)? This will remove all sets.")
+            }
+        }
     }
+
     func duplicateSplit() {
         let newSplit = WorkoutSplit(
             name: split.name,
@@ -138,10 +168,11 @@ struct WorkoutEditorView: View {
         for exercise in split.exercises {
             let newExercise = Exercise(name: exercise.name)
 
-            for set in exercise.sets {
+            for (index, set) in exercise.sets.enumerated() {
                 let newSet = WorkoutSet(
                     reps: set.reps,
-                    weight: set.weight
+                    weight: set.weight,
+                    order: index
                 )
 
                 newExercise.sets.append(newSet)
@@ -156,40 +187,55 @@ struct WorkoutEditorView: View {
 struct SetRow: View {
 
     @Bindable var set: WorkoutSet
+    var progression: SetProgression?
 
     var body: some View {
-        HStack {
+        VStack(alignment: .leading, spacing: 4) {
 
-            TextField(
-                "Weight",
-                value: $set.weight,
-                format: .number
-            )
-            .keyboardType(.decimalPad)
-            .frame(width: 70)
-            .textFieldStyle(.roundedBorder)
+            HStack {
+                //Text("\(set.order)")
 
-            Text("x")
+                TextField("Weight", value: $set.weight, format: .number)
+                    .keyboardType(.decimalPad)
+                    .frame(width: 70)
+                    .textFieldStyle(.roundedBorder)
 
-            TextField(
-                "Reps",
-                value: $set.reps,
-                format: .number
-            )
-            .keyboardType(.numberPad)
-            .frame(width: 60)
-            .textFieldStyle(.roundedBorder)
+                Text("x")
 
-            Spacer()
+                TextField("Reps", value: $set.reps, format: .number)
+                    .keyboardType(.numberPad)
+                    .frame(width: 60)
+                    .textFieldStyle(.roundedBorder)
 
-            //Checkmark
-            Button {
-                set.isCompleted.toggle()
-            } label: {
-                Image(systemName: set.isCompleted ? "checkmark.square.fill" : "square")
-                    .foregroundStyle(set.isCompleted ? .blue : .gray)
+                Spacer()
+
+                Button {
+                    set.isCompleted.toggle()
+                } label: {
+                    Image(systemName: set.isCompleted ? "checkmark.square.fill" : "square")
+                        .foregroundStyle(set.isCompleted ? .blue : .gray)
+                }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
+
+            if let progression {
+
+                if progression.isNewSet {
+                    Text("NEW SET")
+                        .font(.caption2)
+                        .foregroundStyle(.blue)
+                } else {
+                    Text(
+                        progression.change >= 0
+                        ? "↑ +\(Int(progression.change)) (\(Int(progression.percent))%)"
+                        : "↓ \(Int(abs(progression.change))) (\(Int(progression.percent))%)"
+                    )
+                    .font(.caption2)
+                    .foregroundStyle(
+                        progression.change >= 0 ? .green : .red
+                    )
+                }
+            }
         }
     }
 }
@@ -204,14 +250,14 @@ struct AddSetRow: View {
     var body: some View {
         HStack {
 
-            TextField("Reps", text: $repsText)
+            TextField("Weight", text: $weightText)
                 .keyboardType(.numberPad)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 70)
 
             Text("x")
 
-            TextField("Weight", text: $weightText)
+            TextField("Reps", text: $repsText)
                 .keyboardType(.decimalPad)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 90)
@@ -223,7 +269,7 @@ struct AddSetRow: View {
                 let reps = Int(repsText) ?? 0
                 let weight = Double(weightText) ?? 0
 
-                let nextOrder = exercise.sets.count
+                let nextOrder = (exercise.sets.map { $0.order }.max() ?? 0) + 1
 
                 let set = WorkoutSet(
                     reps: reps,
@@ -263,14 +309,43 @@ struct AddExerciseRow: View {
     }
 }
 
+
+//updated to have order
 #Preview {
-    let split = WorkoutSplit(name: "Push Day")
+    let container = try! ModelContainer(
+        for: WorkoutSplit.self,
+        Exercise.self,
+        WorkoutSet.self,
+        configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+    )
+
+    let context = container.mainContext
+    let calendar = Calendar.current
+
+    let today = calendar.startOfDay(for: Date())
+
+    let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+
+    // CURRENT SPLIT (today)
+    let push = WorkoutSplit(name: "Push Day", date: today)
 
     let chest = Exercise(name: "Bench Press")
-    chest.sets.append(WorkoutSet(reps: 10, weight: 135))
-    chest.sets.append(WorkoutSet(reps: 8, weight: 155))
+    chest.sets.append(WorkoutSet(reps: 10, weight: 135, order: 0))
+    chest.sets.append(WorkoutSet(reps: 8, weight: 155, order: 1))
 
-    split.exercises.append(chest)
+    push.exercises.append(chest)
+    context.insert(push)
+ 
+    //PREVIOUS SPLIT (yesterday)
+    let oldPush = WorkoutSplit(name: "Push Day", date: yesterday)
 
-    return WorkoutEditorView(split: split)
+    let chestOld = Exercise(name: "Bench Press")
+    chestOld.sets.append(WorkoutSet(reps: 10, weight: 125, order: 0))
+    chestOld.sets.append(WorkoutSet(reps: 8, weight: 145, order: 1))
+
+    oldPush.exercises.append(chestOld)
+    context.insert(oldPush)
+
+    return WorkoutEditorView(split: push)
+        .modelContainer(container)
 }

@@ -38,6 +38,17 @@ func getAllSets(for exerciseName: String, from splits: [WorkoutSplit]) -> [Worko
     return results
 }
 
+func previousSplits(
+    currentSplit: WorkoutSplit,
+    allSplits: [WorkoutSplit]
+) -> [WorkoutSplit] {
+
+    allSplits
+        .filter { $0.date < currentSplit.date }
+        .sorted { $0.date < $1.date }
+}
+
+
 func getLastWorkout(
     for exerciseName: String,
     from splits: [WorkoutSplit]
@@ -98,8 +109,12 @@ func compareProgression(
     allSplits: [WorkoutSplit]
 ) -> [SetProgression] {
 
-    let pastSplits = allSplits.filter { $0 !== currentSplit }
+    let pastSplits = previousSplits(
+        currentSplit: currentSplit,
+        allSplits: allSplits
+    )
 
+    // get last workout from ONLY real past splits
     guard var lastSets = getLastWorkout(
         for: exerciseName,
         from: pastSplits
@@ -113,8 +128,11 @@ func compareProgression(
         return []
     }
 
-    let currentSets = currentExercise.sets.sorted { $0.order < $1.order }
-    lastSets = lastSets.sorted { $0.order < $1.order }
+    let currentSets = currentExercise.sets
+        .sorted { $0.order < $1.order }
+
+    lastSets = lastSets
+        .sorted { $0.order < $1.order }
 
     let count = min(currentSets.count, lastSets.count)
 
@@ -164,4 +182,78 @@ func compareProgression(
     }
 
     return results
+}
+
+struct SplitProgression {
+
+    let currentVolume: Double
+    let previousVolume: Double
+
+    let change: Double
+    let percent: Double
+}
+
+func compareSplitProgression(
+    currentSplit: WorkoutSplit,
+    allSplits: [WorkoutSplit]
+) -> SplitProgression? {
+
+    let pastSplits = previousSplits(
+        currentSplit: currentSplit,
+        allSplits: allSplits
+    )
+
+    guard let previousSplit = pastSplits.last else {
+        return nil
+    }
+
+    let currentVolume = currentSplit.volume
+    let previousVolume = previousSplit.volume
+
+    let change = currentVolume - previousVolume
+    let percent = (change / max(previousVolume, 1)) * 100
+
+    return SplitProgression(
+        currentVolume: currentVolume,
+        previousVolume: previousVolume,
+        change: change,
+        percent: percent
+    )
+}
+
+func compareExerciseProgression(
+    exerciseName: String,
+    currentSplit: WorkoutSplit,
+    allSplits: [WorkoutSplit]
+) -> SetProgression? {
+
+    let pastSplits = previousSplits(
+        currentSplit: currentSplit,
+        allSplits: allSplits
+    )
+
+    guard let lastSplit = pastSplits.last else { return nil }
+
+    guard let previousExercise = lastSplit.exercises.first(where: {
+        $0.name == exerciseName
+    }) else { return nil }
+
+    let previousVolume = previousExercise.volume
+    let currentVolume = currentSplit.exercises.first(where: {
+        $0.name == exerciseName
+    })?.volume ?? 0
+
+    let change = currentVolume - previousVolume
+    let percent = (change / max(previousVolume, 1)) * 100
+
+    return SetProgression(
+        index: 0,
+        currentReps: 0,
+        currentWeight: currentVolume,
+        previousReps: 0,
+        previousWeight: previousVolume,
+        change: change,
+        percent: percent,
+        isNewSet: false
+    )
 }

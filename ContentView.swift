@@ -74,24 +74,40 @@ struct ContentView: View {
                         .padding(.horizontal)
                         
                     }
-                    NavigationLink {
-                        CreateNewSplit()
-                    } label: {
-                        Text("Create New Split")
-                    }.buttonStyle(BorderedButtonStyle())
+                    HStack(spacing: 12) {
+
+                        NavigationLink {
+                            CreateNewSplit()
+                        } label: {
+                            Text("Create New Split")
+                        }
+                        .buttonStyle(BorderedButtonStyle())
                         .font(Font.custom("Pixelify Sans", size: 20))
                         .foregroundColor(.black)
                         .tint(.blue)
-                    
-                    NavigationLink {
-                        ViewWorkouts()
-                    } label: {
-                        Text("View my workouts")
+
+                        NavigationLink {
+                            ViewWorkouts()
+                        } label: {
+                            Text("View Workouts")
+                        }
+                        .buttonStyle(BorderedButtonStyle())
+                        .font(Font.custom("Pixelify Sans", size: 20))
+                        .foregroundColor(.black)
+                        .tint(.gray)
+
+                        if !recentSplits.isEmpty {
+                            NavigationLink {
+                                AnalyticsView()
+                            } label: {
+                                Text("Analytics")
+                            }
+                            .buttonStyle(BorderedButtonStyle())
+                            .font(Font.custom("Pixelify Sans", size: 20))
+                            .foregroundColor(.black)
+                            .tint(.indigo)
+                        }
                     }
-                    .buttonStyle(BorderedButtonStyle())
-                    .font(Font.custom("Pixelify Sans", size: 20))
-                    .foregroundColor(.black)
-                    .tint(.gray)
                     
                     if !recentSplits.isEmpty {
 

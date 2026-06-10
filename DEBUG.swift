@@ -110,6 +110,17 @@ struct TestAnalyticsView: View {
                     """)
                 }
             }
+            Button("Test Consistency Metrics") {
+                print("--------------")
+
+                let metrics = getConsistencyMetrics(from: splits)
+
+                print("📅 CONSISTENCY METRICS")
+                print("----------------------")
+                print("Workouts This Week: \(metrics.workoutsThisWeek)")
+                print("Current Streak: \(metrics.currentStreak)")
+                print("Longest Streak: \(metrics.longestStreak)")
+            }
         }
     }
 }

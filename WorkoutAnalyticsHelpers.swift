@@ -257,3 +257,133 @@ func compareExerciseProgression(
         isNewSet: false
     )
 }
+
+
+
+
+//New helper functions for charts
+
+func getSplitVolumeOverTime(from splits: [WorkoutSplit]) -> [(date: Date, volume: Double)] {
+    return splits
+        .sorted { $0.date < $1.date }
+        .map { ($0.date, $0.volume) }
+}
+
+
+func getExerciseVolumeOverTime(
+    exercise: String,
+    from splits: [WorkoutSplit]
+) -> [(date: Date, volume: Double)] {
+    return splits
+        .sorted { $0.date < $1.date }
+        .compactMap { split in
+                   guard let exercise = split.exercises.first(where: { $0.name == exercise }) else {
+                       return nil
+                   }
+                   return (split.date, exercise.volume)
+               }
+}
+
+
+func getMaxWeightOverTime(
+    exerciseName: String,
+    from splits: [WorkoutSplit]
+) -> [(date: Date, weight: Double)] {
+
+    return splits
+        .sorted { $0.date < $1.date }
+        .compactMap { split in
+            let sets = split.exercises
+                .first(where: { $0.name == exerciseName })?
+                .sets ?? []
+
+            let maxWeight = sets.map { $0.weight ?? 0 }.max() ?? 0
+
+            return maxWeight > 0 ? (split.date, maxWeight) : nil
+        }
+}
+
+struct ConsistencyMetrics {
+    let workoutsThisWeek: Int
+    let currentStreak: Int
+    let longestStreak: Int
+}
+
+func getConsistencyMetrics(
+    from splits: [WorkoutSplit]
+) -> ConsistencyMetrics {
+    let calendar = Calendar.current
+    let now = Date()
+
+    let workoutsThisWeek = splits.filter {
+        calendar.isDate($0.date, equalTo: now, toGranularity: .weekOfYear)
+    }.count
+    
+    let uniqueDays = Set(
+        splits.map {
+            calendar.startOfDay(for: $0.date)
+        }
+    )
+    let sortedDays = uniqueDays.sorted(by: >)
+    var currentStreak = 0
+
+    guard let firstDay = sortedDays.first else {
+        return ConsistencyMetrics(
+            workoutsThisWeek: 0,
+            currentStreak: 0,
+            longestStreak: 0
+        )
+    }
+
+    var expectedDay = calendar.startOfDay(for: firstDay)
+
+    for day in sortedDays {
+
+        if day == expectedDay {
+            currentStreak += 1
+
+            expectedDay = calendar.date(
+                byAdding: .day,
+                value: -1,
+                to: expectedDay
+            )!
+        } else {
+            break
+        }
+    }
+    var longestStreak = 0
+    var runningStreak = 0
+
+    for i in 0..<sortedDays.count {
+
+        if i == 0 {
+            runningStreak = 1
+            longestStreak = 1
+            continue
+        }
+
+        let previous = sortedDays[i - 1]
+        let current = sortedDays[i]
+
+        let daysBetween = calendar.dateComponents(
+            [.day],
+            from: current,
+            to: previous
+        ).day ?? 0
+
+        if daysBetween == 1 {
+            runningStreak += 1
+        } else {
+            longestStreak = max(longestStreak, runningStreak)
+            runningStreak = 1
+        }
+    }
+
+    longestStreak = max(longestStreak, runningStreak)
+    
+    return ConsistencyMetrics(
+           workoutsThisWeek: workoutsThisWeek,
+           currentStreak: currentStreak,
+           longestStreak: longestStreak
+       )
+}
